@@ -456,6 +456,7 @@ class DarkCurrentAnalysis:
         col = col + Entry11Span
 
 
+
 if __name__ == '__main__':
     window = tkinter.Tk()
     DarkCurrentAnalysis(window)
