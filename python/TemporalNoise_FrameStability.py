@@ -210,7 +210,7 @@ class DarkCurrentAnalysis:
         self.OutputFrame = Frame.data.copy()
 
     def SaveBTNEvent(self, fp, dtype, data):
-        data = np.swapaxes(data, 1, 2)
+        # data = np.swapaxes(data, 1, 2)
         WH.ButtonClickedEvent.Save_Files(fp, dtype, data)
 
     def SaveClipboardBTNEvent(self, data):
