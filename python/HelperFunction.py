@@ -12,6 +12,7 @@ from tkinter import *
 from scipy.ndimage import convolve, uniform_filter
 from scipy.optimize import curve_fit
 from scipy import stats
+import cv2
 from scipy.ndimage import uniform_filter1d
 
 class DataProcessing:
@@ -236,6 +237,20 @@ class ModelingFunction:
     def Line1D(x, a, b):
         return a*x + b
 
+class EventHelper:
+
+    @staticmethod
+    def Read_RawFile(filenow, fileformat, filedtype, ImageSize):
+        fid = open(filenow, "rb")
+        read_data_now = np.fromfile(fid, dtype=filedtype, sep="")
+        read_data_now = read_data_now.reshape(ImageSize)
+        fid.close()
+        return read_data_now
+
+    @staticmethod
+    def Read_tifFile(filenow, fileformat, filedtype, ImageSize):
+        read_data_now = cv2.imread(filenow, -1)
+        return read_data_now
 
 
 

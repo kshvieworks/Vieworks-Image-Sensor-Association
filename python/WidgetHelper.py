@@ -25,9 +25,9 @@ class Plotting:
         return ax
 
     @staticmethod
-    def ShowImage(imageinfo, ax) -> None:
+    def ShowImage(imageinfo, ax, N = 3) -> None:
         ax.cla()
-        ax.imshow(imageinfo, cmap="gray", vmin=max(0, np.mean(imageinfo) - 3*np.std(imageinfo)), vmax=np.mean(imageinfo) + 3*np.std(imageinfo), origin='lower')
+        ax.imshow(imageinfo, cmap="gray", vmin=max(0, np.mean(imageinfo) - N*np.std(imageinfo)), vmax=np.mean(imageinfo) + N*np.std(imageinfo), origin='lower')
         # ax.imshow(imageinfo, cmap="gray", vmin=35300, vmax=42700, origin='lower')
         plt.pause(0.1)
         plt.ion()
@@ -124,23 +124,35 @@ class ButtonClickedEvent:
         read_data = np.array([], dtype=np.float64)
         onlyfiles = [f for f in listdir(filepath) if isfile(join(filepath, f))]
 
-        for file_now in onlyfiles:
-            if file_now[-3:] == fileformat:
-                try:
-                    fid = open(f"{filepath}/{file_now}", "rb")
-                    read_data_now = np.fromfile(fid, dtype=filedtype, sep="")
-                    read_data_now = read_data_now.reshape(ImageSize)
-                    fid.close()
+        if fileformat == 'raw':
+            for file_now in onlyfiles:
+                if file_now[-3:] == fileformat:
+                    try:
+                        read_data_now = HF.EventHelper.Read_RawFile(f"{filepath}/{file_now}", fileformat, filedtype, ImageSize)
 
-                    if not read_data.any():
-                        read_data = read_data_now[np.newaxis, :]
-                        continue
+                        if not read_data.any():
+                            read_data = read_data_now[np.newaxis, :]
+                            continue
 
-                    read_data = np.append(read_data, read_data_now[np.newaxis, :], axis=0)
+                        read_data = np.append(read_data, read_data_now[np.newaxis, :], axis=0)
 
-                except ValueError:
-                    print(f'{file_now} Skipped')
+                    except ValueError:
+                        print(f'{file_now} Skipped')
 
+        elif fileformat == 'tif':
+            for file_now in onlyfiles:
+                if file_now[-3:] == fileformat:
+                    try:
+                        read_data_now = HF.EventHelper.Read_tifFile(f"{filepath}/{file_now}", fileformat, filedtype, ImageSize)
+
+                        if not read_data.any():
+                            read_data = read_data_now[np.newaxis, :]
+                            continue
+
+                        read_data = np.append(read_data, read_data_now[np.newaxis, :], axis=0)
+
+                    except ValueError:
+                        print(f'{file_now} Skipped')
         return np.array(read_data, dtype=np.float64)
 
     @staticmethod
@@ -148,13 +160,19 @@ class ButtonClickedEvent:
 
         read_data = np.array([], dtype=np.float64)
         file_now = filepath
+        if fileformat == 'raw':
+                try:
+                    read_data = HF.EventHelper.Read_RawFile(file_now, fileformat, filedtype,
+                                                                ImageSize)
+                except ValueError:
+                    print(f'{file_now} Skipped')
 
-        if file_now[-3:] == fileformat:
+        elif fileformat == 'tif':
+            try:
+                read_data = HF.EventHelper.Read_tifFile(file_now, fileformat, filedtype, ImageSize)
 
-            fid = open(f"{file_now}", "rb")
-            read_data = np.fromfile(fid, dtype=filedtype, sep="")
-            read_data = read_data.reshape(ImageSize)
-            fid.close()
+            except ValueError:
+                print(f'{file_now} Skipped')
 
         return np.array(read_data, dtype=np.float64)
 

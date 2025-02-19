@@ -1,3 +1,5 @@
+from tkinter.ttk import Combobox
+
 import numpy as np
 import os
 import pandas as pd
@@ -25,6 +27,7 @@ class DarkCurrentAnalysis:
 
         self.filepath = ""
         self.OffsetCalibration = BooleanVar()
+        self.dFormat = StringVar()
         self.ImageSize_Row = IntVar()
         self.ImageSize_Col = IntVar()
 
@@ -52,7 +55,7 @@ class DarkCurrentAnalysis:
     def Read_Image(self):
 
         Image_Size = [int(self.ImageSize_Row.get()), int(self.ImageSize_Col.get())]
-        self.read_data = WH.ButtonClickedEvent.Read_Folder(self.filepath, 'raw', np.uint16, Image_Size)
+        self.read_data = WH.ButtonClickedEvent.Read_Folder(self.filepath, self.dFormat.get()[1:], np.uint16, Image_Size)
 
         if not hasattr(self, 'ImageWidget'):
             self.ImageWidget = WH.Plotting.MakeFigureWidget(self.ImagePlotFrame, fs)
@@ -77,7 +80,7 @@ class DarkCurrentAnalysis:
         fpath = WH.ButtonClickedEvent.Open_File(self.filepath)
         self.Label3.configure(text=f"{fpath[-40:]}")
 
-        self.dark_data = WH.ButtonClickedEvent.Read_File(fpath, fpath[-3:], np.uint16, Image_Size)
+        self.dark_data = WH.ButtonClickedEvent.Read_File(fpath, self.dFormat.get()[1:], np.uint16, Image_Size)
         self.InputData = self.InputData - self.dark_data
         self.frame_average = HF.DataProcessing.TemporalAverage(self.InputData)
         WH.Plotting.ShowImage(self.frame_average, self.ImageWidget)
@@ -207,7 +210,7 @@ class DarkCurrentAnalysis:
         self.OutputFrame = Frame.data.copy()
 
     def SaveBTNEvent(self, fp, dtype, data):
-
+        data = np.swapaxes(data, 1, 2)
         WH.ButtonClickedEvent.Save_Files(fp, dtype, data)
 
     def SaveClipboardBTNEvent(self, data):
@@ -246,6 +249,9 @@ class DarkCurrentAnalysis:
         self.Label1_1.grid(column=col, row=3)
         self.Label1_2 = tkinter.Label(self.InputinfoFrame, text='Offset Calibration')
         self.Label1_2.grid(column=col, row=4)
+        self.Label1_3 = tkinter.Label(self.InputinfoFrame, text = 'Format')
+        self.Label1_3.grid(column=col, row=5)
+
         col = col + Entry1Span
 
         Entry2Span = 2
@@ -261,6 +267,9 @@ class DarkCurrentAnalysis:
                                                   command=lambda: WH.UIConfiguration.ButtonState([self.Button3], self.OffsetCalibration.get()))
         self.CheckButton2_2.select()
         self.CheckButton2_2.grid(column = col, row = 4, columnspan=Entry2Span)
+        self.FormatCBox = Combobox(self.InputinfoFrame, width = 4, textvariable = self.dFormat, state="readonly", values=[" raw", " tif"])
+        self.FormatCBox.set(" raw")
+        self.FormatCBox.grid(column = col, row = 5, columnspan=Entry2Span)
         col = col + Entry2Span
 
         Entry3span = 1
