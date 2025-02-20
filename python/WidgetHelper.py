@@ -13,6 +13,7 @@ from tkinter import *
 from scipy.ndimage import convolve, uniform_filter
 
 import HelperFunction as HF
+from python.HelperFunction import DataProcessing
 
 
 class Plotting:
@@ -182,7 +183,7 @@ class ButtonClickedEvent:
         fn = filepath[filepath.rfind('/')+1:filepath.rfind('.')]
 
         filepath = tkinter.filedialog.asksaveasfilename(initialdir=f"{filepath}/",
-                                                        initialfile = f'Line Calibrated {fn} W{data.shape[1]}H{data.shape[0]}',
+                                                        initialfile = f'{fn} W{data.shape[1]}H{data.shape[0]}',
                                                         title="Save as",
                                                         defaultextension=".raw",
                                                         filetypes=(("raw", ".raw"),
@@ -289,7 +290,11 @@ class ButtonClickedEvent:
     def Calculate_DSNU(imageinfo, Differential = True):
         if Differential:
             imageinfo = HF.DataProcessing.DifferentialImage(imageinfo)
+
         FrameNoise = HF.DataProcessing.FrameNoise(data = imageinfo, Differential = Differential)
+
+        imageinfo = DataProcessing.TemporalAverage(imageinfo)
+
         TotalNoise = HF.DataProcessing.TotalNoise(data = imageinfo, Differential = Differential)
         RowLineNoise = HF.DataProcessing.LineNoise(data = imageinfo, Differential = Differential, Orientation = 'Row')
         ColLineNoise = HF.DataProcessing.LineNoise(data = imageinfo, Differential = Differential, Orientation = 'Col')
@@ -319,6 +324,8 @@ class ButtonClickedEvent:
         if HPF:
             imageinfo = HF.DataProcessing.Highpass_Filter(imageinfo)
 
+        imageinfo = DataProcessing.TemporalAverage(imageinfo)
+
         Mask = (imageinfo.copy()).astype(bool)
         Mask.fill(True)
 
@@ -331,14 +338,14 @@ class ButtonClickedEvent:
 
         MaskedImage = np.ma.masked_array(data=imageinfo, mask=~Mask)
 
-        FrameNoise = HF.DataProcessing.FrameNoise(data = MaskedImage, Differential = Differential)
         TotalNoise = HF.DataProcessing.TotalNoise(data = MaskedImage, Differential = Differential)
         RowLineNoise = HF.DataProcessing.LineNoise(data = MaskedImage, Differential = Differential, Orientation = 'Row')
         ColLineNoise = HF.DataProcessing.LineNoise(data = MaskedImage, Differential = Differential, Orientation = 'Col')
         LineNoise = np.sqrt(np.square(RowLineNoise) + np.square(ColLineNoise))
-        PixelNoise = HF.DataProcessing.PixelNoise(TotalNoise, FrameNoise, LineNoise)
-        return {"TotalNoise" : TotalNoise, "FrameNoise" : FrameNoise, "RowLineNoise" : RowLineNoise,
-                "ColLineNoise" : ColLineNoise, "PixelNoise" : PixelNoise, "ImageInfo" : MaskedImage.data.copy(), "Mask": Mask}
+        PixelNoise = HF.DataProcessing.PixelNoise(TotalNoise=TotalNoise, LineNoise=LineNoise)
+
+        return {"TotalNoise" : TotalNoise, "RowLineNoise" : RowLineNoise, "ColLineNoise" : ColLineNoise,
+                "PixelNoise" : PixelNoise, "ImageInfo" : MaskedImage, "Mask": Mask}
 
     @staticmethod
     def Apply_IQR_TemporalNoise(imageinfo, NIQR, NIteration, Differential = True, ExcludingZero = True, HPF = True):

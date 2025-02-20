@@ -74,7 +74,7 @@ class DataProcessing:
         return np.std(LineMeanX) / np.sqrt(2) if Differential else np.std(LineMeanX)
 
     @staticmethod
-    def PixelNoise(TotalNoise, FrameNoise, LineNoise):
+    def PixelNoise(TotalNoise, FrameNoise = 0, LineNoise = 0):
         return np.sqrt(np.square(TotalNoise) - np.square(FrameNoise) - np.square(LineNoise))
 
     @staticmethod
