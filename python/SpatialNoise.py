@@ -129,6 +129,7 @@ class SpatialNoiseAnalysis:
 
         WH.Plotting.ShowImage(self.Noise["ImageInfo"], ax2)
         WH.UIConfiguration.Save2Clipboard(HF.DataProcessing.Data2Histogram(self.Noise['ImageInfo']))
+        self.Output =  self.Noise['ImageInfo'].flatten()
         self.OutputFrame = self.Noise["ImageInfo"].copy()
 
     def IQR(self, Frame, NIQR, NIteration, Differential, ExcZero, HPF, Widget):
