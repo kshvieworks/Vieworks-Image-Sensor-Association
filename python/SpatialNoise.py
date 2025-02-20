@@ -16,6 +16,16 @@ fw = int(Window_Size[0]/2)
 fh = int(Window_Size[1]/2)
 fs = (fw/200, fh/200)
 
+# import pandas as pd
+# import numpy as np
+# from numpy.distutils.conv_template import header
+#
+# data = pd.read_clipboard(header=None)
+# hist = np.histogram(data[1], bins=int(data[1].max() - data[1].min()))
+# hist = np.transpose(np.array((hist[1][:-1], hist[0])))
+# df = pd.DataFrame(hist)
+# df.to_clipboard(excel=True)
+
 
 class SpatialNoiseAnalysis:
     def __init__(self, window):
@@ -129,6 +139,7 @@ class SpatialNoiseAnalysis:
 
         WH.Plotting.ShowImage(self.Noise["ImageInfo"], ax2)
         WH.UIConfiguration.Save2Clipboard(HF.DataProcessing.Data2Histogram(self.Noise['ImageInfo']))
+        self.Output =  self.Noise['ImageInfo'].flatten()
         self.OutputFrame = self.Noise["ImageInfo"].copy()
 
     def IQR(self, Frame, NIQR, NIteration, Differential, ExcZero, HPF, Widget):
@@ -379,3 +390,5 @@ if __name__ == '__main__':
     window = tkinter.Tk()
     SpatialNoiseAnalysis(window)
     window.mainloop()
+
+
