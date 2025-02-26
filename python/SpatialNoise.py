@@ -138,9 +138,9 @@ class SpatialNoiseAnalysis:
         self.Label8_4_2.configure(text=f'{int(np.round(self.Noise["PixelNoise"] / self.SystemGain.get(), 0))}')
 
         WH.Plotting.ShowImage(self.Noise["ImageInfo"], ax2)
+        self.OutputFrame = self.Noise["ImageInfo"].copy()
         WH.UIConfiguration.Save2Clipboard(HF.DataProcessing.Data2Histogram(self.Noise['ImageInfo']))
         self.Output =  self.Noise['ImageInfo'].flatten()
-        self.OutputFrame = self.Noise["ImageInfo"].copy()
 
     def IQR(self, Frame, NIQR, NIteration, Differential, ExcZero, HPF, Widget):
         self.MaskedNoise = WH.ButtonClickedEvent.Apply_IQR_DSNU(Frame, NIQR, NIteration, Differential, ExcZero, HPF)
@@ -151,10 +151,11 @@ class SpatialNoiseAnalysis:
         self.Label10_4_2.configure(text=f'{int(np.round(self.MaskedNoise["PixelNoise"] / self.SystemGain.get(), 0))}')
 
         WH.Plotting.ShowImage(self.MaskedNoise["ImageInfo"], Widget)
+        self.OutputFrame = self.MaskedNoise["ImageInfo"].copy()
+        self.OutputFrame.fill_value = 65535
         WH.UIConfiguration.Save2Clipboard(HF.DataProcessing.Data2Histogram(self.MaskedNoise['ImageInfo'], self.MaskedNoise['Mask']))
 
         self.Output =  self.MaskedNoise['ImageInfo'][self.MaskedNoise['Mask']==True]
-        self.OutputFrame = self.MaskedNoise["ImageInfo"].copy()
 
     def SaveBTNEvent(self, fp, dtype, data):
 

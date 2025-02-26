@@ -1,3 +1,5 @@
+from tkinter.ttk import Combobox
+
 import numpy as np
 import os
 import pandas as pd
@@ -14,7 +16,6 @@ Window_Size = [1280, 1280]
 fw = int(Window_Size[0]/2)
 fh = int(Window_Size[1]/2)
 fs = (fw/200, fh/200)
-fsPTC = (fw/200, fh/100)
 
 class DarkCurrentAnalysis:
     def __init__(self, window):
@@ -26,17 +27,19 @@ class DarkCurrentAnalysis:
 
         self.filepath = ""
         self.OffsetCalibration = BooleanVar()
+        self.dFormat = StringVar()
         self.ImageSize_Row = IntVar()
         self.ImageSize_Col = IntVar()
 
         self.FOI_Start, self.FOI_End, self.ROI_Left, self.ROI_Right, self.ROI_Up, self.ROI_Dn =\
             IntVar(), IntVar(), IntVar(), IntVar(), IntVar(), IntVar()
-        self.read_data = np.array([], dtype=np.float64)
-        self.dark_data = np.array([], dtype=np.float64)
-        self.frame_average = np.array([], dtype=np.float64)
 
-        self.IFS, self.SystemGain, self.Differential, self.ExcludingZero, self.HPF =\
-            IntVar(), 0, BooleanVar(), BooleanVar(), BooleanVar()
+        self.read_data = np.array([], dtype=np.float64)
+        self.frame_average = np.array([], dtype=np.float64)
+        self.dark_data = np.array([], dtype=np.float64)
+
+        self.SystemGain, self.Differential, self.ExcludingZero, self.HPF =\
+            DoubleVar(), BooleanVar(), BooleanVar(), BooleanVar()
 
         self.Division_Column, self.Division_Row = IntVar(), IntVar()
         self.NIQR, self.NIteration = DoubleVar(), IntVar()
@@ -56,7 +59,7 @@ class DarkCurrentAnalysis:
     def Read_Image(self):
 
         Image_Size = [int(self.ImageSize_Row.get()), int(self.ImageSize_Col.get())]
-        self.read_data = WH.ButtonClickedEvent.Read_Folder(self.filepath, 'raw', np.uint16, Image_Size)
+        self.read_data = WH.ButtonClickedEvent.Read_Folder(self.filepath, self.dFormat.get()[1:], np.uint16, Image_Size)
 
         if not hasattr(self, 'ImageWidget'):
             self.ImageWidget = WH.Plotting.MakeFigureWidget(self.ImagePlotFrame, fs)
@@ -80,8 +83,8 @@ class DarkCurrentAnalysis:
         fpath = WH.ButtonClickedEvent.Open_File(self.filepath)
         self.Label3.configure(text=f"{fpath[-40:]}")
 
-        self.dark_data = WH.ButtonClickedEvent.Read_File(fpath, fpath[-3:], np.uint16, Image_Size)
-        self.InputData = self.InputData - self.dark_data
+        self.dark_data = WH.ButtonClickedEvent.Read_File(fpath, self.dFormat.get()[1:], np.uint16, Image_Size)
+        self.InputData = self.InputData - self.dark_data + 1000
         self.frame_average = HF.DataProcessing.TemporalAverage(self.InputData)
         WH.Plotting.ShowImage(self.frame_average, self.ImageWidget)
 
@@ -107,21 +110,20 @@ class DarkCurrentAnalysis:
         WH.Plotting.DrawDivision(ax, Frame, row, col)
 
     def Configurations(self, Frame, Differential):
-        self.SystemGain = HF.DataProcessing.Coulomb2Electron(HF.DataProcessing.DN2Coulomb(1, self.IFS.get()))
-        self.Label6_2_2.configure(text=f"{int(self.SystemGain)}")
+
         if Differential == False:
-            self.Label6_4_2.configure(text=f"{int(self.FOI_End.get() - self.FOI_Start.get() + 1)}")
+            self.Label6_3_2.configure(text=f"{int(self.FOI_End.get() - self.FOI_Start.get() + 1)}")
         else:
-            self.Label6_4_2.configure(text=f"{int(self.FOI_End.get() - self.FOI_Start.get())}")
+            self.Label6_3_2.configure(text=f"{int(self.FOI_End.get() - self.FOI_Start.get())}")
 
     def Calculate(self, ax1, ax2, Frame, row, col, Differential):
 
         self.Noise = WH.ButtonClickedEvent.Calculate_TemporalNoise(imageinfo=Frame, Differential = Differential)
 
-        self.Label8_1_2.configure(text=f'{int(np.round(self.Noise["TotalNoise"] * self.SystemGain, 0))}')
-        self.Label8_2_2.configure(text=f'{int(np.round(self.Noise["FrameNoise"] * self.SystemGain, 0))}')
-        self.Label8_3_2.configure(text=f'{int(np.round(self.Noise["RowLineNoise"] * self.SystemGain, 0))}')
-        self.Label8_4_2.configure(text=f'{int(np.round(self.Noise["ColLineNoise"] * self.SystemGain, 0))}')
+        self.Label8_1_2.configure(text=f'{int(np.round(self.Noise["TotalNoise"] / self.SystemGain.get(), 0))}')
+        self.Label8_2_2.configure(text=f'{int(np.round(self.Noise["FrameNoise"] / self.SystemGain.get(), 0))}')
+        self.Label8_3_2.configure(text=f'{int(np.round(self.Noise["RowLineNoise"] / self.SystemGain.get(), 0))}')
+        self.Label8_4_2.configure(text=f'{int(np.round(self.Noise["ColLineNoise"] / self.SystemGain.get(), 0))}')
 
         WH.Plotting.ShowImage(HF.DataProcessing.TemporalAverage(self.Noise["ImageInfo"]), ax2)
         WH.UIConfiguration.Save2Clipboard(HF.DataProcessing.Data2Histogram(self.Noise['ImageInfo']))
@@ -129,10 +131,10 @@ class DarkCurrentAnalysis:
     def Apply_IQR(self, Frame, NIQR, NIteration, Differential, ExcZero, HPF, Widget):
         self.MaskedNoise = WH.ButtonClickedEvent.Apply_IQR_TemporalNoise(Frame, NIQR, NIteration, Differential, ExcZero, HPF)
 
-        self.Label10_1_2.configure(text=f'{int(np.round(self.MaskedNoise["TotalNoise"] * self.SystemGain, 0))}')
-        self.Label10_2_2.configure(text=f'{int(np.round(self.MaskedNoise["FrameNoise"] * self.SystemGain, 0))}')
-        self.Label10_3_2.configure(text=f'{int(np.round(self.MaskedNoise["RowLineNoise"] * self.SystemGain, 0))}')
-        self.Label10_4_2.configure(text=f'{int(np.round(self.MaskedNoise["ColLineNoise"] * self.SystemGain, 0))}')
+        self.Label10_1_2.configure(text=f'{int(np.round(self.MaskedNoise["TotalNoise"]/ self.SystemGain.get(), 0))}')
+        self.Label10_2_2.configure(text=f'{int(np.round(self.MaskedNoise["FrameNoise"] / self.SystemGain.get(), 0))}')
+        self.Label10_3_2.configure(text=f'{int(np.round(self.MaskedNoise["RowLineNoise"] / self.SystemGain.get(), 0))}')
+        self.Label10_4_2.configure(text=f'{int(np.round(self.MaskedNoise["ColLineNoise"] / self.SystemGain.get(), 0))}')
 
         WH.Plotting.ShowImage(HF.DataProcessing.TemporalAverage(self.MaskedNoise["Mask"]), Widget)
         WH.UIConfiguration.Save2Clipboard(HF.DataProcessing.Data2Histogram(self.MaskedNoise['ImageInfo'], self.MaskedNoise['Mask']))
@@ -178,6 +180,9 @@ class DarkCurrentAnalysis:
         self.Label1_1.grid(column=col, row=3)
         self.Label1_2 = tkinter.Label(self.InputinfoFrame, text='Offset Calibration')
         self.Label1_2.grid(column=col, row=4)
+        self.Label1_3 = tkinter.Label(self.InputinfoFrame, text = 'Format')
+        self.Label1_3.grid(column=col, row=5)
+
         col = col + Entry1Span
 
         # UI for Reading File
@@ -194,6 +199,9 @@ class DarkCurrentAnalysis:
                                                   command=lambda: WH.UIConfiguration.ButtonState([self.Button3], self.OffsetCalibration.get()))
         self.CheckButton2_2.select()
         self.CheckButton2_2.grid(column = col, row = 4, columnspan=Entry2Span)
+        self.FormatCBox = Combobox(self.InputinfoFrame, width = 4, textvariable = self.dFormat, state="readonly", values=[" raw", " tif"])
+        self.FormatCBox.set(" raw")
+        self.FormatCBox.grid(column = col, row = 5, columnspan=Entry2Span)
         col = col + Entry2Span
 
         # UI for Selecting and Reading Darkfile
@@ -269,25 +277,21 @@ class DarkCurrentAnalysis:
         col = col + Entry5Span
 
         Entry6Span = 2
-        self.Label6_1_1 = tkinter.Label(self.InputinfoFrame, text='IFS')
+        self.Label6_1_1 = tkinter.Label(self.InputinfoFrame, text='System Gain')
         self.Label6_1_1.grid(column = col, row = 3)
-        self.Label6_2_1 = tkinter.Label(self.InputinfoFrame, text='System Gain')
+        self.Label6_2_1 = tkinter.Label(self.InputinfoFrame, text='Differential')
         self.Label6_2_1.grid(column = col, row = 4)
-        self.Label6_3_1 = tkinter.Label(self.InputinfoFrame, text='Differential')
+        self.Label6_3_1 = tkinter.Label(self.InputinfoFrame, text='Frames')
         self.Label6_3_1.grid(column = col, row = 5)
-        self.Label6_4_1 = tkinter.Label(self.InputinfoFrame, text='Frames')
-        self.Label6_4_1.grid(column = col, row = 6)
 
-        self.Entry6_1_2 = tkinter.Entry(self.InputinfoFrame, width=4, textvariable=self.IFS, relief="ridge")
-        self.Entry6_1_2.grid(column=col + 1, row=3)
-        self.Label6_2_2 = tkinter.Label(self.InputinfoFrame, text='')
-        self.Label6_2_2.grid(column = col + 1, row = 4)
+        self.Entry6_1_1 = tkinter.Entry(self.InputinfoFrame, width=4, textvariable=self.SystemGain, relief="ridge")
+        self.Entry6_1_1.grid(column=col + 1, row=3)
 
-        self.CheckButton6_3_2 = tkinter.Checkbutton(self.InputinfoFrame, text="", variable=self.Differential)
-        self.CheckButton6_3_2.select()
-        self.CheckButton6_3_2.grid(column = col + 1, row = 5)
-        self.Label6_4_2 = tkinter.Label(self.InputinfoFrame, text='')
-        self.Label6_4_2.grid(column=col + 1, row=6)
+        self.CheckButton6_2_2 = tkinter.Checkbutton(self.InputinfoFrame, text="", variable=self.Differential)
+        self.CheckButton6_2_2.select()
+        self.CheckButton6_2_2.grid(column = col + 1, row = 4)
+        self.Label6_3_2 = tkinter.Label(self.InputinfoFrame, text='')
+        self.Label6_3_2.grid(column=col + 1, row=5)
 
         self.Button6 = tkinter.Button(self.InputinfoFrame, text='Configuration', command=lambda: self.Configurations(self.ROI_Data.copy(), self.Differential.get()))
         self.Button6.grid(column=col, row=2, columnspan=Entry6Span)

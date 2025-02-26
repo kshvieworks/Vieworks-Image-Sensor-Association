@@ -13,7 +13,6 @@ from tkinter import *
 from scipy.ndimage import convolve, uniform_filter
 
 import HelperFunction as HF
-from python.HelperFunction import DataProcessing
 
 
 class Plotting:
@@ -282,7 +281,7 @@ class ButtonClickedEvent:
             for k in range(numCol):
                 Mask = HF.DataProcessing.Division_Mask(imageinfo, Mask, totalRow, numRow, j, totalCol, numCol, k)
                 MaskedImage = np.ma.masked_array(imageinfo, mask = ~Mask)
-                avg[j*numCol +k] = Plotting.ShowDivision_Average(ax, MaskedImage, int(totalRow*(j+0.5)/numRow), int(totalCol*(k+0.5)/numCol), text)
+                avg[j*numCol +k] = Plotting.ShowDivision_Average(ax, MaskedImage, int(totalCol*(k+0.5)/numCol), int(totalRow*(j+0.5)/numRow), text)
 
         return avg
 
@@ -293,7 +292,7 @@ class ButtonClickedEvent:
 
         FrameNoise = HF.DataProcessing.FrameNoise(data = imageinfo, Differential = Differential)
 
-        imageinfo = DataProcessing.TemporalAverage(imageinfo)
+        imageinfo = HF.DataProcessing.TemporalAverage(imageinfo)
 
         TotalNoise = HF.DataProcessing.TotalNoise(data = imageinfo, Differential = Differential)
         RowLineNoise = HF.DataProcessing.LineNoise(data = imageinfo, Differential = Differential, Orientation = 'Row')
@@ -324,7 +323,7 @@ class ButtonClickedEvent:
         if HPF:
             imageinfo = HF.DataProcessing.Highpass_Filter(imageinfo)
 
-        imageinfo = DataProcessing.TemporalAverage(imageinfo)
+        imageinfo = HF.DataProcessing.TemporalAverage(imageinfo)
 
         Mask = (imageinfo.copy()).astype(bool)
         Mask.fill(True)

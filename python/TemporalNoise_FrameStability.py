@@ -154,6 +154,8 @@ class DarkCurrentAnalysis:
         self.SpatialMask = MaskedImage.mask
         self.Output = np.append(self.Output, Average[:, np.newaxis].copy(), axis=1)
         self.OutputFrame = Frame.data.copy()
+        # self.OutputFrame.fill_value = 65535
+
 
     def Stability_Calibration(self, Frame, SpatialMask, NIQR, NIteration, ax1, ax2, row, col, FittingCurve = 'Exponential'):
         pady = Frame.shape[0]
