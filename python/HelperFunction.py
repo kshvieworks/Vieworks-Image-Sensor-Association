@@ -1,4 +1,5 @@
 import tkinter.filedialog
+from symbol import continue_stmt
 
 import imageio
 import numpy as np
@@ -19,12 +20,12 @@ class DataProcessing:
     @staticmethod
     def TemporalAverage(data):
         # Return 2D Image averaged over Time
-        return data.mean(axis=0) if data.ndim == 3 else data
+        return data.mean(axis=-3) if data.ndim >= 3 else data
 
     @staticmethod
     def SpatialAverage(data):
         # Return 1D Temporal Array Averaged over All Pixels
-        return data.mean(axis=(1,2)) if data.ndim == 3 else data.mean()
+        return data.mean(axis=(-1,-2))
 
     @staticmethod
     def DN2Coulomb(DN, IFS=2, LSBC = 0.125E-12, LSBV = 61.035E-6):
@@ -88,6 +89,15 @@ class DataProcessing:
     @staticmethod
     def FindMinimumValues(flattenimage, n):
         return flattenimage[flattenimage.argsort()[:n]]
+
+    @staticmethod
+    def MakeCoordinate(x1, x2, y1, y2, divx, divy):
+        x = np.arange(x1, x2 + 0.1, int((x2-x1)/divx) + 1)
+        y = np.arange(y1, y2 + 0.1, int((y2-y1)/divy) + 1)
+
+        xm, ym = np.meshgrid(x, y)
+        temp = np.column_stack((xm.ravel(), ym.ravel()))
+        return [(int(s[0]), int(s[1])) for s in temp]
 
     @staticmethod
     def IQR_Mask(imageinfo, MaskedArray, NIQR):
@@ -226,6 +236,31 @@ class DataProcessing:
         sst = np.sum((y - ybar)**2)
 
         return sse/sst
+
+
+class NumpyHelper:
+
+    @staticmethod
+    def AppendList(body, attachment):
+        if not body:
+            return [attachment]
+
+        body.append(attachment)
+        return body
+
+    @staticmethod
+    def AppendArray(body, attachment, newaxis=0):
+
+        if not body.any():
+            return np.expand_dims(attachment, axis=newaxis)
+
+        return np.append(body, np.expand_dims(attachment, axis=newaxis), axis=newaxis)
+
+    @staticmethod
+    def npArray_DifferentSizeList(InputList):
+        pos = min(arr.shape[0] for arr in InputList)
+        return np.array([data[:pos] for data in InputList])
+
 
 class ModelingFunction:
 

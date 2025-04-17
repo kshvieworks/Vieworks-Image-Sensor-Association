@@ -37,6 +37,7 @@ class DarkCurrentAnalysis:
         self.frame_average = np.array([], dtype=np.float64)
 
         self.Division_Column, self.Division_Row = IntVar(), IntVar()
+        self.PrevMask = BooleanVar()
         self.NIQR, self.NIteration = DoubleVar(), IntVar()
         self.NIQR_S, self.NIteration_S = DoubleVar(), IntVar()
 
@@ -123,13 +124,21 @@ class DarkCurrentAnalysis:
 
         self.Label8_2_1.configure(text=f"{np.format_float_scientific(np.mean(Average), unique=False, precision=2)}")
         self.Label8_2_2.configure(text=f"{np.format_float_scientific(np.sqrt(np.mean(variance_ij)), unique=False, precision=2)}")
+        self.Label8_2_3.configure(text=f"{np.format_float_scientific(np.sqrt(np.ma.median(variance_ij)), unique=False, precision=2)}")
+
         self.Output = Average[:, np.newaxis].copy()
         self.OutputFrame = Frame.copy()
 
 
-    def Apply_IQR(self, Frame, NIQR, NIteration, ax1, ax2, row, col):
+    def Apply_IQR(self, Frame, NIQR, NIteration, ax1, ax2, row, col, MaskExisting, PrevMask):
+        if MaskExisting:
+            MaskedImage = HF.DataProcessing.Array2Maskedarray(HF.DataProcessing.TemporalAverage(Frame))
+            MaskedImage.mask = PrevMask
 
-        MaskedImage = WH.ButtonClickedEvent.IQR(HF.DataProcessing.TemporalAverage(Frame), NIQR, NIteration, False)
+        else:
+            MaskedImage = WH.ButtonClickedEvent.IQR(HF.DataProcessing.TemporalAverage(Frame), NIQR, NIteration, False)
+            self.SpatialMask = MaskedImage.mask.copy()
+
         WH.Plotting.ShowImage(MaskedImage, ax1)
         self.ShowBlock(ax1, MaskedImage.copy(), row, col)
         WH.ButtonClickedEvent.Average(ax1, MaskedImage.copy(), row, col)
@@ -150,8 +159,9 @@ class DarkCurrentAnalysis:
 
         self.Label9_3_2.configure(text=f"{np.format_float_scientific(np.mean(Average), unique=False, precision=2)}")
         self.Label9_4_2.configure(text=f"{np.format_float_scientific(np.sqrt(np.mean(variance_ij)), unique=False, precision=2)}")
+        self.Label9_5_2.configure(text=f"{np.format_float_scientific(np.sqrt(np.ma.median(variance_ij)), unique=False, precision=2)}")
 
-        self.SpatialMask = MaskedImage.mask
+
         self.Output = np.append(self.Output, Average[:, np.newaxis].copy(), axis=1)
         self.OutputFrame = Frame.data.copy()
         # self.OutputFrame.fill_value = 65535
@@ -205,6 +215,8 @@ class DarkCurrentAnalysis:
 
         self.Label10_3_2.configure(text=f"{np.format_float_scientific(np.mean(Average), unique=False, precision=2)}")
         self.Label10_4_2.configure(text=f"{np.format_float_scientific(np.sqrt(np.mean(variance_ij)), unique=False, precision=2)}")
+        self.Label10_5_2.configure(text=f"{np.format_float_scientific(np.sqrt(np.ma.median(variance_ij)), unique=False, precision=2)}")
+
 
         Average = np.pad(Average.data, (0, int(pady - Average.shape[0])), 'constant')
         self.Output = np.append(self.Output, Average[:, np.newaxis].copy(), axis=1)
@@ -378,10 +390,32 @@ class DarkCurrentAnalysis:
         self.Label8_1_1.grid(column=col, row=3)
         self.Label8_1_2 = tkinter.Label(self.InputinfoFrame, text='stddev')
         self.Label8_1_2.grid(column=col, row=4)
+        self.Label8_1_3 = tkinter.Label(self.InputinfoFrame, text='stdev(m)')
+        self.Label8_1_3.grid(column=col, row=5)
         self.Label8_2_1 = tkinter.Label(self.InputinfoFrame)
         self.Label8_2_1.grid(column=col+1, row=3)
         self.Label8_2_2 = tkinter.Label(self.InputinfoFrame)
         self.Label8_2_2.grid(column=col+1, row=4)
+        self.Label8_2_3 = tkinter.Label(self.InputinfoFrame)
+        self.Label8_2_3.grid(column=col+1, row=5)
+
+        self.CheckButton8_3_1 = tkinter.Checkbutton(self.InputinfoFrame, text="", variable=self.PrevMask,
+                                                  command=lambda: [WH.UIConfiguration.ButtonState([self.Button8_3_2], self.PrevMask.get()),
+                                                    WH.UIConfiguration.ButtonState([self.Button9, self.Entry9_1_2, self.Entry9_2_2], not self.PrevMask.get())])
+        self.CheckButton8_3_1.grid(column = col, row = 6)
+        self.Button8_3_2 = tkinter.Button(self.InputinfoFrame, text='Use Previous', command=lambda: self.Apply_IQR(self.ROI_Data.copy(),
+                                                                                                            self.NIQR.get(),
+                                                                                                            self.NIteration.get(),
+                                                                                                            self.ImageWidget,
+                                                                                                            self.ROIWidget,
+                                                                                                            int(self.Division_Row.get()),
+                                                                                                            int(self.Division_Column.get()),
+                                                                                                            self.PrevMask.get(),
+                                                                                                            self.SpatialMask
+                                                                                                            ))
+        self.Button8_3_2.grid(column=col+1, row=6)
+        self.Button8_3_2["state"] = 'disable'
+
         col = col + Entry8Span
 
         Entry9Span = 2
@@ -391,7 +425,10 @@ class DarkCurrentAnalysis:
                                                                                                             self.ImageWidget,
                                                                                                             self.ROIWidget,
                                                                                                             int(self.Division_Row.get()),
-                                                                                                            int(self.Division_Column.get())))
+                                                                                                            int(self.Division_Column.get()),
+                                                                                                            self.PrevMask.get(),
+                                                                                                            self.SpatialMask
+                                                                                                            ))
         self.Button9.grid(column=col, row=2, columnspan=Entry9Span)
         self.Label9_1_1 = tkinter.Label(self.InputinfoFrame, text='IQR')
         self.Label9_1_1.grid(column=col, row=3)
@@ -407,10 +444,15 @@ class DarkCurrentAnalysis:
         self.Label9_3_1.grid(column=col, row=5)
         self.Label9_4_1 = tkinter.Label(self.InputinfoFrame, text='stddev')
         self.Label9_4_1.grid(column=col, row=6)
+        self.Label9_5_1 = tkinter.Label(self.InputinfoFrame, text='stdev(m)')
+        self.Label9_5_1.grid(column=col, row=7)
         self.Label9_3_2 = tkinter.Label(self.InputinfoFrame)
         self.Label9_3_2.grid(column=col+1, row=5)
         self.Label9_4_2 = tkinter.Label(self.InputinfoFrame)
         self.Label9_4_2.grid(column=col+1, row=6)
+        self.Label9_5_2 = tkinter.Label(self.InputinfoFrame)
+        self.Label9_5_2.grid(column=col+1, row=7)
+
         col = col + Entry9Span
 
         Entry10Span = 2
@@ -439,10 +481,14 @@ class DarkCurrentAnalysis:
         self.Label10_3_1.grid(column=col, row=5)
         self.Label10_4_1 = tkinter.Label(self.InputinfoFrame, text='stddev')
         self.Label10_4_1.grid(column=col, row=6)
+        self.Label10_5_1 = tkinter.Label(self.InputinfoFrame, text='stdev(m)')
+        self.Label10_5_1.grid(column=col, row=7)
         self.Label10_3_2 = tkinter.Label(self.InputinfoFrame)
         self.Label10_3_2.grid(column=col + 1, row=5)
         self.Label10_4_2 = tkinter.Label(self.InputinfoFrame)
         self.Label10_4_2.grid(column=col + 1, row=6)
+        self.Label10_5_2 = tkinter.Label(self.InputinfoFrame)
+        self.Label10_5_2.grid(column=col + 1, row=7)
 
         col = col + Entry10Span
 

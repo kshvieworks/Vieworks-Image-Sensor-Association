@@ -7,7 +7,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from os import listdir
-from os.path import isfile, join
+from os.path import isfile, isdir, join
 import tkinter
 from tkinter import *
 from scipy.ndimage import convolve, uniform_filter
@@ -119,6 +119,11 @@ class ButtonClickedEvent:
         return filepath
 
     @staticmethod
+    def Read_Folders(filepath):
+
+        return [join(filepath, f) for f in listdir(filepath) if isdir(join(filepath, f))]
+
+    @staticmethod
     def Read_Folder(filepath, fileformat, filedtype, ImageSize):
 
         read_data = np.array([], dtype=np.float64)
@@ -197,16 +202,19 @@ class ButtonClickedEvent:
             imageio.imwrite(filepath, data.astype(filedtype))
 
     @staticmethod
-    def Save_Files(filepath, filedtype, data):
+    def Save_Files(filepath, filedtype, dformat, data):
 
         filepath = ButtonClickedEvent.Open_Path(filepath)
 
         for k, d in enumerate(data):
-            fname = filepath + f"/IMG{k:04} + W{data.shape[1]}xH{data.shape[2]} {filedtype.__name__}.raw"
+            fname = filepath + f"/IMG{k:04} + W{data.shape[1]}xH{data.shape[2]} {filedtype.__name__}.{dformat}"
+            if dformat == 'raw':
+                with open(fname, 'wb') as f:
+                    f.write((d.astype(filedtype)).tobytes())
+                    f.close()
+            elif dformat == "tif":
+                imageio.imwrite(fname, d.astype(filedtype))
 
-            with open(fname, 'wb') as f:
-                f.write((d.astype(filedtype)).tobytes())
-                f.close()
 
     @staticmethod
     def Save_csv(filepath, data):
@@ -239,11 +247,17 @@ class ButtonClickedEvent:
         if Data.ndim == 3:
             return Data[:, U:D + 1, L:R + 1]
 
+        if Data.ndim == 4:
+            return Data[:, :, U:D + 1, L:R + 1]
+
     @staticmethod
     def Set_FOI(Data, FOI):
     #"""FOI: Frame of Interest"""
+        if Data.ndim <=3:
+            return Data[FOI[0]-1:FOI[1]+1]
 
-        return Data[FOI[0]-1:FOI[1]]
+        if Data.ndim == 4:
+            return Data[:, FOI[0]-1:FOI[1]+1]
 
     @staticmethod
     def Set_Columns(Data, Columns):
